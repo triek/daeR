@@ -1,7 +1,8 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 
-const apiUrl = 'http://localhost:3000/items'
+const apiBaseUrl = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+const apiUrl = `${apiBaseUrl}/items`
 const books = ref([])
 const formName = ref('')
 const editingId = ref(null)
