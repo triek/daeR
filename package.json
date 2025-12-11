@@ -3,19 +3,18 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-
   "homepage": "https://triek.github.io/daer",
-
   "scripts": {
     "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
     "frontend": "vite",
-    "backend": "npm run dev --prefix backend",
+    "backend": "npm start --prefix backend",
     "build": "vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "vue": "^3.5.24"
   },
   "devDependencies": {

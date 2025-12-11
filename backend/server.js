@@ -1,6 +1,11 @@
 const express = require("express");
+const cors = require("cors");
+
 const app = express();
+
+app.use(cors());
 app.use(express.json());
+
 
 app.get("/", (req, res) => {
   res.send("API is alive");
@@ -8,7 +13,7 @@ app.get("/", (req, res) => {
 
 // In-memory test data
 let items = [
-  { id: 1, name: "Test item 1" },
+  { id: 1, name: "Test item 3" },
   { id: 2, name: "Test item 2" }
 ];
 
