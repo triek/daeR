@@ -21,21 +21,28 @@ let graceTimer = null
 let finalTimer = null
 let bannerFetchInFlight = false
 
-const palette = [
-  'from-rose-500 via-fuchsia-500 to-orange-400',
-  'from-emerald-500 via-teal-500 to-cyan-400',
-  'from-indigo-500 via-blue-500 to-sky-400',
-  'from-amber-500 via-orange-500 to-rose-400',
-  'from-purple-500 via-violet-500 to-pink-400',
-  'from-lime-500 via-green-500 to-emerald-400',
-]
+const GOLDEN_ANGLE = 137.508
+const BASE_SATURATION = 78
+const BASE_LIGHTNESS = 56
+const GRADIENT_STEP = 22
+const defaultGradient = 'linear-gradient(135deg, hsl(215 20% 40%), hsl(215 25% 32%))'
 
-const pickColor = () => palette[Math.floor(Math.random() * palette.length)]
+const gradientFromIndex = (index) => {
+  const hue = (index * GOLDEN_ANGLE) % 360
+  const midHue = (hue + GRADIENT_STEP) % 360
+  const endHue = (hue + GRADIENT_STEP * 2) % 360
+
+  return `linear-gradient(135deg, hsl(${hue} ${BASE_SATURATION}% ${BASE_LIGHTNESS + 8}%), hsl(${midHue} ${BASE_SATURATION}% ${BASE_LIGHTNESS}%), hsl(${endHue} ${BASE_SATURATION - 6}% ${BASE_LIGHTNESS - 10}%))`
+}
+
+const nextColorIndex = () => Object.keys(colorMap.value).length
 
 const assignColors = (items = []) => {
+  let colorIndex = nextColorIndex()
   items.forEach((item) => {
     if (!colorMap.value[item.id]) {
-      colorMap.value[item.id] = pickColor()
+      colorMap.value[item.id] = gradientFromIndex(colorIndex)
+      colorIndex += 1
     }
   })
 }
@@ -208,7 +215,7 @@ const saveBook = async () => {
 
     if (!isEditing) {
       books.value.push(data)
-      colorMap.value[data.id] = pickColor()
+      colorMap.value[data.id] = gradientFromIndex(nextColorIndex())
       setMessage(`"${data.name}" added. Keep the reading streak alive!`)
     } else {
       const index = books.value.findIndex((book) => book.id === editingId.value)
@@ -367,8 +374,8 @@ console.log('API URL TEST:', import.meta.env.VITE_API_URL)
             <li
               v-for="book in books"
               :key="book.id"
-              class="flex flex-col justify-between gap-4 rounded-2xl bg-gradient-to-br p-5 text-white shadow-2xl transition hover:-translate-y-0.5 hover:shadow-3xl"
-              :class="colorMap[book.id] || 'from-slate-700 via-slate-600 to-slate-700'"
+              class="flex flex-col justify-between gap-4 rounded-2xl p-5 text-white shadow-2xl transition hover:-translate-y-0.5 hover:shadow-3xl"
+              :style="{ backgroundImage: colorMap[book.id] || defaultGradient }"
             >
               <div class="space-y-2">
                 <p class="text-lg font-semibold leading-tight">{{ book.name }}</p>
