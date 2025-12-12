@@ -5,9 +5,7 @@
   "type": "module",
   "homepage": "https://triek.github.io/daer",
   "scripts": {
-    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
-    "frontend": "vite",
-    "backend": "npm start --prefix backend",
+    "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "predeploy": "npm run build",
