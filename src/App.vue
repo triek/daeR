@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 const apiUrl = `${apiBaseUrl}/items`
@@ -9,6 +9,17 @@ const formName = ref('')
 const editingId = ref(null)
 const statusMessage = ref('Use this shelf to exercise the API while dreaming about books to read next.')
 const loading = ref(false)
+const bannerVisible = ref(false)
+const bannerMessage = ref('')
+const bannerCountdown = ref(null)
+const bannerPhase = ref('')
+const bannerFailureMessage = ref('Failed to fetch')
+let bannerDelayTimer = null
+
+let countdownTimer = null
+let graceTimer = null
+let finalTimer = null
+let bannerFetchInFlight = false
 
 const palette = [
   'from-rose-500 via-fuchsia-500 to-orange-400',
@@ -38,21 +49,137 @@ const setMessage = (text) => {
   statusMessage.value = text
 }
 
-const fetchBooks = async () => {
-  loading.value = true
-  setMessage('Fetching your reading list...')
+const clearBannerTimers = () => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+  if (graceTimer) {
+    clearInterval(graceTimer)
+    graceTimer = null
+  }
+  if (finalTimer) {
+    clearTimeout(finalTimer)
+    finalTimer = null
+  }
+}
+
+const hideBanner = () => {
+  bannerVisible.value = false
+  bannerCountdown.value = null
+  bannerMessage.value = ''
+  bannerPhase.value = ''
+  clearBannerTimers()
+}
+
+const fetchBooks = async ({
+  silent = false,
+  triggerBannerOnFailure = false,
+  allowImmediateFailure = true,
+} = {}) => {
+  let response
+  let bannerKickoffPending = Boolean(triggerBannerOnFailure)
+
+  if (!silent) {
+    loading.value = true
+    setMessage('Fetching your reading list...')
+  }
+
+  if (triggerBannerOnFailure) {
+    bannerDelayTimer = setTimeout(() => {
+      if (!bannerVisible.value && loading.value) {
+        startServerWakeBanner({ failureMessage: 'Unable to load books' })
+      }
+      bannerKickoffPending = false
+      bannerDelayTimer = null
+    }, 1200)
+  }
+
   try {
-    const response = await fetch(apiUrl)
+    response = await fetch(apiUrl)
     if (!response.ok) throw new Error('Unable to load books')
     const data = await response.json()
     books.value = data
     assignColors(data)
     setMessage('Reading list refreshed. Ready for more stories!')
+    hideBanner()
+    return true
   } catch (error) {
-    setMessage(error.message)
+    if (!silent) setMessage(error.message)
+    if (triggerBannerOnFailure && !bannerVisible.value) {
+      if (bannerDelayTimer) {
+        clearTimeout(bannerDelayTimer)
+        bannerDelayTimer = null
+      }
+      const immediateFailure = allowImmediateFailure && (!response || error?.message === 'Failed to fetch')
+      const bannerAlreadyStarted = !bannerKickoffPending
+      startServerWakeBanner({
+        immediateFailure,
+        failureMessage: bannerAlreadyStarted ? bannerFailureMessage.value : error.message,
+      })
+    }
+    return false
   } finally {
-    loading.value = false
+    if (bannerDelayTimer) {
+      clearTimeout(bannerDelayTimer)
+      bannerDelayTimer = null
+    }
+    if (!silent) loading.value = false
   }
+}
+
+const tryFetchDuringBanner = async () => {
+  if (bannerFetchInFlight) return
+  bannerFetchInFlight = true
+  await fetchBooks({ silent: true })
+  bannerFetchInFlight = false
+}
+
+const startGracePeriod = () => {
+  let secondsLeft = 10
+  bannerPhase.value = 'grace'
+  bannerMessage.value = 'The server is starting...'
+  graceTimer = setInterval(async () => {
+    secondsLeft -= 1
+    await tryFetchDuringBanner()
+    if (secondsLeft <= 0 && bannerVisible.value) {
+      clearInterval(graceTimer)
+      graceTimer = null
+      bannerPhase.value = 'failed'
+      bannerMessage.value = bannerFailureMessage.value
+      finalTimer = setTimeout(() => hideBanner(), 3000)
+    }
+  }, 1000)
+}
+
+const startServerWakeBanner = ({ immediateFailure = false, failureMessage = 'Failed to fetch' } = {}) => {
+  bannerVisible.value = true
+  bannerFailureMessage.value = failureMessage
+
+  if (immediateFailure) {
+    bannerPhase.value = 'failed'
+    bannerMessage.value = bannerFailureMessage.value
+    bannerCountdown.value = null
+    finalTimer = setTimeout(() => hideBanner(), 3000)
+    return
+  }
+
+  bannerPhase.value = 'countdown'
+  bannerMessage.value = 'Starting server, it usually takes'
+  bannerCountdown.value = 25
+  tryFetchDuringBanner()
+
+  countdownTimer = setInterval(async () => {
+    if (bannerCountdown.value > 1) {
+      bannerCountdown.value -= 1
+      await tryFetchDuringBanner()
+    } else {
+      clearInterval(countdownTimer)
+      countdownTimer = null
+      bannerCountdown.value = null
+      startGracePeriod()
+    }
+  }, 1000)
 }
 
 const saveBook = async () => {
@@ -116,30 +243,55 @@ const removeBook = async (id) => {
   }
 }
 
-onMounted(fetchBooks)
+const initializeBooks = async () => {
+  await fetchBooks({ triggerBannerOnFailure: true })
+}
+
+onMounted(initializeBooks)
+onUnmounted(clearBannerTimers)
 
 console.log('API URL TEST:', import.meta.env.VITE_API_URL)
 </script>
 
-<template>
-  <main class="min-h-screen pb-16 text-slate-100">
-    <div class="mx-auto flex max-w-5xl flex-col gap-4 px-2 pt-6 sm:px-4 lg:px-8">
-      <header
-        class="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/70 via-slate-900/40 to-slate-800/60 p-6 shadow-2xl backdrop-blur"
-      >
-        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p class="text-sm uppercase tracking-[0.2em] text-slate-400">Reading room · API practice</p>
-            <h1 class="mt-2 text-3xl font-semibold text-white sm:text-4xl">Book Track CRUD Test</h1>
-            <p class="mt-3 max-w-2xl text-base text-slate-300">
-              Add, edit, and remove titles to exercise your REST endpoints while keeping a cozy virtual shelf.
-            </p>
-          </div>
-          <div class="rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">
-            REST CRUD
+  <template>
+    <main class="min-h-screen pb-16 text-slate-100">
+      <div class="mx-auto flex max-w-5xl flex-col gap-4 px-2 pt-6 sm:px-4 lg:px-8">
+        <div v-if="bannerVisible" class="sticky top-0 z-50 -mx-2 sm:-mx-4 lg:-mx-8">
+          <div class="bg-gradient-to-r from-indigo-500/70 via-purple-500/70 to-pink-500/70 px-4 py-3 text-white shadow-xl backdrop-blur">
+            <div class="mx-auto flex max-w-5xl flex-wrap items-center gap-3 text-sm">
+              <span
+                class="inline-flex h-3 w-3 rounded-full"
+                :class="bannerPhase === 'failed' ? 'bg-rose-200' : 'bg-amber-200 animate-pulse'"
+              ></span>
+              <div class="flex items-center gap-2">
+                <p class="font-semibold">{{ bannerMessage }}</p>
+                <span
+                  v-if="bannerCountdown !== null"
+                  class="font-semibold"
+                >
+                  {{ bannerCountdown }}s...
+                </span>
+              </div>        
+            </div>
           </div>
         </div>
-      </header>
+
+        <header
+          class="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/70 via-slate-900/40 to-slate-800/60 p-6 shadow-2xl backdrop-blur"
+        >
+          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p class="text-sm uppercase tracking-[0.2em] text-slate-400">Reading room · API practice</p>
+              <h1 class="mt-2 text-3xl font-semibold text-white sm:text-4xl">Book Track CRUD Test</h1>
+              <p class="mt-3 max-w-2xl text-base text-slate-300">
+                Add, edit, and remove titles to exercise your REST endpoints while keeping a cozy virtual shelf.
+              </p>
+            </div>
+            <div class="rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-lg">
+              REST CRUD
+            </div>
+          </div>
+        </header>
 
       <section class="rounded-2xl border border-white/10 bg-slate-900/50 p-4 shadow-xl backdrop-blur">
         <div class="flex items-center gap-3 text-sm text-slate-200">
@@ -161,7 +313,7 @@ console.log('API URL TEST:', import.meta.env.VITE_API_URL)
               class="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white/90 transition hover:border-white/40 hover:text-white"
               type="button"
               :disabled="loading"
-              @click="fetchBooks"
+              @click="fetchBooks({ triggerBannerOnFailure: true, allowImmediateFailure: false })"
             >
               {{ loading ? 'Refreshing...' : 'Refresh list' }}
             </button>
