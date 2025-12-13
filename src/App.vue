@@ -379,13 +379,6 @@ onUnmounted(clearBannerTimers)
         </div>
       </header>
 
-      <section class="rounded-2xl border border-white/10 bg-slate-900/50 p-4 shadow-xl backdrop-blur">
-        <div class="flex items-center gap-3 text-sm text-slate-200">
-          <span class="inline-flex h-2 w-2 rounded-full bg-emerald-400"></span>
-          <p>{{ statusMessage }}</p>
-        </div>
-      </section>
-
       <section class="grid gap-6 lg:grid-cols-2">
         <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-xl backdrop-blur">
           <div class="flex items-start justify-between gap-4">
@@ -465,6 +458,14 @@ onUnmounted(clearBannerTimers)
             </div>
           </form>
         </div>
+
+        <!-- API status message -->
+        <section class="rounded-2xl border border-white/10 bg-slate-900/50 p-4 shadow-xl backdrop-blur">
+          <div class="flex items-center gap-3 text-sm text-slate-200">
+            <span class="inline-flex h-2 w-2 rounded-full bg-emerald-400"></span>
+            <p>{{ statusMessage }}</p>
+          </div>
+        </section>
 
         <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-xl backdrop-blur">
           <div class="flex items-start justify-between gap-4">
