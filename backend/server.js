@@ -18,7 +18,25 @@ let items = [
 ];
 
 // In-memory books collection
-let books = [];
+const now = new Date().toISOString();
+let books = [
+  {
+    id: 101,
+    title: "The Art of Reading",
+    author: "Avery Harper",
+    totalPages: 280,
+    createdAt: now,
+    updatedAt: now
+  },
+  {
+    id: 102,
+    title: "Journey Through Pages",
+    author: "Riley Morgan",
+    totalPages: 340,
+    createdAt: now,
+    updatedAt: now
+  }
+];
 
 // In-memory logs collection
 let logs = [];
