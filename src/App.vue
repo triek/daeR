@@ -343,9 +343,21 @@ const deleteBook = async (bookId) => {
   }
 }
 
-const ensureLogFormDefaults = () => {
-  if (!logFormDate.value) {
-    logFormDate.value = new Date().toISOString().slice(0, 10)
+const getNextLogDate = (bookId) => {
+  const entries = logsByBookId.value[bookId] ?? []
+  if (!entries.length) {
+    return new Date().toISOString().slice(0, 10)
+  }
+
+  const latestDate = entries.reduce((latest, entry) => (entry.date > latest ? entry.date : latest), entries[0].date)
+  const next = new Date(latestDate)
+  next.setDate(next.getDate() + 1)
+  return next.toISOString().slice(0, 10)
+}
+
+const ensureLogFormDefaults = (bookId = activeLogBookId.value) => {
+  if (!logFormDate.value && bookId) {
+    logFormDate.value = getNextLogDate(bookId)
   }
   if (!logFormPages.value) {
     logFormPages.value = ''
@@ -360,9 +372,12 @@ const fetchLogsForBook = async (bookId) => {
     const response = await fetch(`${apiUrl}/${bookId}/logs`)
     if (!response.ok) throw new Error('Unable to load reading logs.')
     const data = await response.json()
-    logsByBookId.value[bookId] = data
+    logsByBookId.value = {
+      ...logsByBookId.value,
+      [bookId]: data,
+    }
     activeLogBookId.value = bookId
-    ensureLogFormDefaults()
+    ensureLogFormDefaults(bookId)
   } catch (error) {
     setMessage(error.message)
   } finally {
@@ -411,8 +426,11 @@ const postLogForBook = async (bookId, payload) => {
   })
 
   if (!response.ok) {
-    const errorText = await response.json().catch(() => ({ error: 'Failed to save log.' }))
-    throw new Error(errorText.error || 'Failed to save log.')
+    const fallbackMessage = response.status === 409 ? 'A log already exists for that date.' : 'Failed to save log.'
+    const errorText = await response.json().catch(() => ({ error: fallbackMessage }))
+    const error = new Error(errorText.error || fallbackMessage)
+    error.status = response.status
+    throw error
   }
 
   const newLog = await response.json()
@@ -422,7 +440,7 @@ const postLogForBook = async (bookId, payload) => {
 
 const saveLogForBook = async (bookId) => {
   if (submitting.value) return
-  ensureLogFormDefaults()
+  ensureLogFormDefaults(bookId)
   if (!validateLogForm()) return
 
   submitting.value = true
@@ -430,8 +448,14 @@ const saveLogForBook = async (bookId) => {
 
   try {
     await postLogForBook(bookId, { date: logFormDate.value, pagesRead: Number(logFormPages.value) })
+    await fetchLogsForBook(bookId)
+    logFormPages.value = ''
+    logFormDate.value = getNextLogDate(bookId)
     setMessage('Log entry added successfully.')
   } catch (error) {
+    if (error.status === 409) {
+      await fetchLogsForBook(bookId)
+    }
     setMessage(error.message)
   } finally {
     submitting.value = false
@@ -440,21 +464,21 @@ const saveLogForBook = async (bookId) => {
 
 const demoBooks = [
   {
-    title: 'Dune: Starter Edition',
-    author: 'Frank Herbert',
+    title: '300 Coding Execises for Kids',
+    author: 'Kopa Piste',
     totalPages: 220,
     logs: [
-      { date: '2025-01-02', pagesRead: 40 },
-      { date: '2025-01-03', pagesRead: 30 },
+      { date: '2025-12-14', pagesRead: 40 },
+      { date: '2025-12-16', pagesRead: 30 },
     ],
   },
   {
-    title: 'Project Hail Mary: Preview',
-    author: 'Andy Weir',
-    totalPages: 260,
+    title: 'No Pun Intended',
+    author: 'Will Livingston',
+    totalPages: 130,
     logs: [
-      { date: '2025-01-04', pagesRead: 35 },
-      { date: '2025-01-05', pagesRead: 45 },
+      { date: '2025-12-9', pagesRead: 35 },
+      { date: '2025-12-12', pagesRead: 45 },
     ],
   },
 ]
