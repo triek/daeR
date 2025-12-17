@@ -39,6 +39,7 @@ const BASE_LIGHTNESS = 56
 const GRADIENT_STEP = 22
 const defaultGradient = 'linear-gradient(135deg, hsl(215 20% 40%), hsl(215 25% 32%))'
 
+// Compute gradient for index
 const gradientFromIndex = (index) => {
   const hue = (index * GOLDEN_ANGLE) % 360
   const midHue = (hue + GRADIENT_STEP) % 360
@@ -47,8 +48,10 @@ const gradientFromIndex = (index) => {
   return `linear-gradient(135deg, hsl(${hue} ${BASE_SATURATION}% ${BASE_LIGHTNESS + 8}%), hsl(${midHue} ${BASE_SATURATION}% ${BASE_LIGHTNESS}%), hsl(${endHue} ${BASE_SATURATION - 6}% ${BASE_LIGHTNESS - 10}%))`
 }
 
+// Get next color index
 const nextColorIndex = () => Object.keys(colorMap.value).length
 
+// Assign colors to books
 const assignColors = (items = []) => {
   let colorIndex = nextColorIndex()
   items.forEach((item) => {
@@ -59,16 +62,19 @@ const assignColors = (items = []) => {
   })
 }
 
+// Reset new book form
 const resetForm = () => {
   formTitle.value = ''
   formAuthor.value = ''
   formTotalPages.value = ''
 }
 
+// Update status message
 const setMessage = (text) => {
   statusMessage.value = text
 }
 
+// Clear banner timers
 const clearBannerTimers = () => {
   if (countdownTimer) {
     clearInterval(countdownTimer)
@@ -84,6 +90,7 @@ const clearBannerTimers = () => {
   }
 }
 
+// Hide wake-up banner
 const hideBanner = () => {
   bannerVisible.value = false
   bannerCountdown.value = null
@@ -92,6 +99,7 @@ const hideBanner = () => {
   clearBannerTimers()
 }
 
+// Fetch books list
 const fetchBooks = async ({
   silent = false,
   triggerBannerOnFailure = false,
@@ -148,6 +156,7 @@ const fetchBooks = async ({
   }
 }
 
+// Poll books while banner shows
 const tryFetchDuringBanner = async () => {
   if (bannerFetchInFlight) return
   bannerFetchInFlight = true
@@ -155,6 +164,7 @@ const tryFetchDuringBanner = async () => {
   bannerFetchInFlight = false
 }
 
+// Start grace period
 const startGracePeriod = () => {
   let secondsLeft = 10
   bannerPhase.value = 'grace'
@@ -172,6 +182,7 @@ const startGracePeriod = () => {
   }, 1000)
 }
 
+// Show server wake banner
 const startServerWakeBanner = ({ immediateFailure = false, failureMessage = 'Failed to fetch' } = {}) => {
   bannerVisible.value = true
   bannerFailureMessage.value = failureMessage
@@ -202,6 +213,7 @@ const startServerWakeBanner = ({ immediateFailure = false, failureMessage = 'Fai
   }, 1000)
 }
 
+// Build request payload from form values
 const buildPayloadFromValues = ({ title, author, totalPages }) => {
   const payload = {
     title: title.trim(),
@@ -215,10 +227,13 @@ const buildPayloadFromValues = ({ title, author, totalPages }) => {
   return payload
 }
 
+// Build new book payload
 const buildPayload = () => buildPayloadFromValues({ title: formTitle.value, author: formAuthor.value, totalPages: formTotalPages.value })
+// Build edit book payload
 const buildEditPayload = () =>
   buildPayloadFromValues({ title: editTitle.value, author: editAuthor.value, totalPages: editTotalPages.value })
 
+// Validate book payload locally
 const validatePayload = (payload) => {
   if (!payload.title) {
     setMessage('Give the book a title before saving.')
@@ -233,6 +248,7 @@ const validatePayload = (payload) => {
   return true
 }
 
+// Post book to API
 const postBook = async (payload) => {
   const response = await fetch(apiUrl, {
     method: 'POST',
@@ -248,6 +264,7 @@ const postBook = async (payload) => {
   return data
 }
 
+// Save new book
 const saveBook = async () => {
   if (submitting.value) return
 
@@ -269,6 +286,7 @@ const saveBook = async () => {
   }
 }
 
+// Start edit mode
 const startEdit = (book) => {
   editingBookId.value = book.id
   editTitle.value = book.title
@@ -276,6 +294,7 @@ const startEdit = (book) => {
   editTotalPages.value = book.totalPages
 }
 
+// Cancel edit mode
 const cancelEdit = () => {
   editingBookId.value = null
   editTitle.value = ''
@@ -283,6 +302,7 @@ const cancelEdit = () => {
   editTotalPages.value = ''
 }
 
+// Update book details
 const updateBook = async () => {
   if (!editingBookId.value || submitting.value) return
 
@@ -316,6 +336,7 @@ const updateBook = async () => {
   }
 }
 
+// Delete book
 const deleteBook = async (bookId) => {
   if (submitting.value) return
 
@@ -343,6 +364,7 @@ const deleteBook = async (bookId) => {
   }
 }
 
+// Calculate next log date
 const getNextLogDate = (bookId) => {
   const entries = logsByBookId.value[bookId] ?? []
   if (!entries.length) {
@@ -355,6 +377,7 @@ const getNextLogDate = (bookId) => {
   return next.toISOString().slice(0, 10)
 }
 
+// Ensure default log form values
 const ensureLogFormDefaults = (bookId = activeLogBookId.value) => {
   if (!logFormDate.value && bookId) {
     logFormDate.value = getNextLogDate(bookId)
@@ -364,6 +387,7 @@ const ensureLogFormDefaults = (bookId = activeLogBookId.value) => {
   }
 }
 
+// Fetch logs for book
 const fetchLogsForBook = async (bookId) => {
   if (fetchingLogs.value && activeLogBookId.value === bookId) return
 
@@ -385,6 +409,7 @@ const fetchLogsForBook = async (bookId) => {
   }
 }
 
+// Toggle log visibility
 const toggleLogs = async (bookId) => {
   if (activeLogBookId.value === bookId) {
     activeLogBookId.value = null
@@ -393,6 +418,7 @@ const toggleLogs = async (bookId) => {
   await fetchLogsForBook(bookId)
 }
 
+// Validate log form input
 const validateLogForm = () => {
   if (!logFormDate.value) {
     setMessage('Select a date for the log entry.')
@@ -408,6 +434,7 @@ const validateLogForm = () => {
   return true
 }
 
+// Add log entry to state
 const addLogToState = (bookId, log) => {
   const updatedLogs = [...(logsByBookId.value[bookId] ?? []), log].sort((a, b) => a.date.localeCompare(b.date))
 
@@ -418,6 +445,7 @@ const addLogToState = (bookId, log) => {
   activeLogBookId.value = bookId
 }
 
+// Post log entry
 const postLogForBook = async (bookId, payload) => {
   const response = await fetch(`${apiUrl}/${bookId}/logs`, {
     method: 'POST',
@@ -438,6 +466,7 @@ const postLogForBook = async (bookId, payload) => {
   return newLog
 }
 
+// Save log for book
 const saveLogForBook = async (bookId) => {
   if (submitting.value) return
   ensureLogFormDefaults(bookId)
@@ -483,6 +512,7 @@ const demoBooks = [
   },
 ]
 
+// Seed demo books and logs
 const seedDemoBooksWithLogs = async () => {
   if (submitting.value || loading.value) return
 
@@ -512,6 +542,7 @@ const seedDemoBooksWithLogs = async () => {
   }
 }
 
+// Initialize book list
 const initializeBooks = async () => {
   await fetchBooks({ triggerBannerOnFailure: true })
 }
@@ -560,7 +591,7 @@ onUnmounted(clearBannerTimers)
         </div>
       </header>
 
-      <section class="grid gap-6 lg:grid-cols-2">
+      <section class="grid gap-6">
         <div class="rounded-2xl border border-white/10 bg-slate-900/60 p-6 shadow-xl backdrop-blur">
           <div class="flex items-start justify-between gap-4">
             <div>
@@ -680,11 +711,11 @@ onUnmounted(clearBannerTimers)
             </span>
           </div>
 
-          <ul class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" v-if="books.length">
+          <ul class="mt-6 space-y-4 sm:columns-2 sm:gap-4" v-if="books.length">
             <li
               v-for="book in books"
               :key="book.id"
-              class="flex flex-col justify-between gap-4 rounded-2xl p-5 text-white shadow-2xl transition hover:-translate-y-0.5 hover:shadow-3xl"
+              class="flex flex-col justify-between gap-4 rounded-2xl p-5 text-white shadow-2xl transition hover:-translate-y-0.5 hover:shadow-3xl break-inside-avoid"
               :style="{ backgroundImage: colorMap[book.id] || defaultGradient }"
             >
               <div class="space-y-4">
