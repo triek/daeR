@@ -13,7 +13,7 @@ app.get("/", (req, res) => {
 
 // In-memory test data
 let items = [
-  { id: 1, name: "Test item 5" },
+  { id: 1, name: "Test item 1" },
   { id: 2, name: "Test item 2" }
 ];
 
@@ -22,17 +22,17 @@ const now = new Date().toISOString();
 let books = [
   {
     id: 101,
-    title: "The Art of Reading",
-    author: "Avery Harper",
-    totalPages: 280,
+    title: '300 Coding Execises for Kids',
+    author: 'Kopa Piste',
+    totalPages: 220,
     createdAt: now,
     updatedAt: now
   },
   {
     id: 102,
-    title: "Journey Through Pages",
-    author: "Riley Morgan",
-    totalPages: 340,
+    title: 'No Pun Intended',
+    author: 'Will Livingston',
+    totalPages: 130,
     createdAt: now,
     updatedAt: now
   }

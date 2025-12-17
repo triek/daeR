@@ -464,18 +464,18 @@ const saveLogForBook = async (bookId) => {
 
 const demoBooks = [
   {
-    title: '300 Coding Execises for Kids',
-    author: 'Kopa Piste',
-    totalPages: 220,
+    title: "The Art of Reading",
+    author: "Avery Harper",
+    totalPages: 280,
     logs: [
       { date: '2025-12-14', pagesRead: 40 },
       { date: '2025-12-16', pagesRead: 30 },
     ],
   },
   {
-    title: 'No Pun Intended',
-    author: 'Will Livingston',
-    totalPages: 130,
+    title: "Journey Through Pages",
+    author: "Riley Morgan",
+    totalPages: 340,
     logs: [
       { date: '2025-12-9', pagesRead: 35 },
       { date: '2025-12-12', pagesRead: 45 },
