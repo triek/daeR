@@ -129,6 +129,7 @@ const fetchBooks = async ({
     const data = await response.json()
     books.value = data
     assignColors(data)
+    await prefetchLogsForBooks(data)
     setMessage('Reading list refreshed. Ready for more stories!')
     hideBanner()
     return true
@@ -472,6 +473,38 @@ const postLogForBook = async (bookId, payload) => {
   const newLog = await response.json()
   addLogToState(bookId, newLog)
   return newLog
+}
+
+// Preload logs so totals stay in sync without opening the history
+const prefetchLogsForBooks = async (bookList = []) => {
+  const missingBookIds = bookList.filter((book) => !(book.id in logsByBookId.value)).map((book) => book.id)
+
+  if (!missingBookIds.length) return
+
+  const results = await Promise.allSettled(
+    missingBookIds.map(async (bookId) => {
+      const response = await fetch(`${apiUrl}/${bookId}/logs`)
+      if (!response.ok) throw new Error('Unable to load reading logs.')
+      const data = await response.json()
+      return [bookId, data]
+    }),
+  )
+
+  const successfulEntries = results
+    .filter(({ status }) => status === 'fulfilled')
+    .map(({ value }) => value)
+
+  if (successfulEntries.length) {
+    logsByBookId.value = {
+      ...logsByBookId.value,
+      ...Object.fromEntries(successfulEntries),
+    }
+  }
+
+  const firstFailure = results.find(({ status }) => status === 'rejected')
+  if (firstFailure) {
+    console.error('Failed to preload logs for some books', firstFailure.reason)
+  }
 }
 
 // Save log for book
