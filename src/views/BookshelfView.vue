@@ -7,6 +7,7 @@ const serverInfoUrl = 'https://daer-ifxi.onrender.com/'
 const books = ref([])
 const colorMap = ref({})
 const logsByBookId = ref({})
+const readingStreak = ref(7)
 const formTitle = ref('')
 const formAuthor = ref('')
 const formTotalPages = ref('')
@@ -632,6 +633,15 @@ onUnmounted(clearBannerTimers)
               </div>
             </div>
           </header>
+
+          <!-- Streak section -->
+          <section class="flex flex-col items-center gap-1 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-4 py-3 text-white shadow-lg shadow-indigo-500/30">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-white">Your streak</p>
+            <div>
+              <span class="text-3xl font-semibold leading-none">{{ readingStreak }}</span>
+              <span aria-hidden="true" class="text-2xl">🔥</span>
+            </div>
+          </section>
 
           <!-- API status message -->
           <section class="rounded-2xl border border-white/20 bg-slate-900 p-4 shadow-xl backdrop-blur">
