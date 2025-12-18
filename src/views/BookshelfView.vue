@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 const apiUrl = `${apiBaseUrl}/books`
@@ -8,6 +8,20 @@ const books = ref([])
 const colorMap = ref({})
 const logsByBookId = ref({})
 const readingStreak = ref(7)
+const weeklyPace = computed(() => {
+  const today = new Date()
+  const start = new Date(today)
+  start.setDate(today.getDate() - 6)
+
+  const startDate = start.toISOString().slice(0, 10)
+
+  return Object.values(logsByBookId.value).reduce((total, logEntries) => {
+    return (
+      total +
+      logEntries.reduce((sum, entry) => (entry.date >= startDate ? sum + (Number(entry.pagesRead) || 0) : sum), 0)
+    )
+  }, 0)
+})
 const formTitle = ref('')
 const formAuthor = ref('')
 const formTotalPages = ref('')
@@ -634,12 +648,22 @@ onUnmounted(clearBannerTimers)
             </div>
           </header>
 
-          <!-- Streak section -->
-          <section class="flex flex-col items-center gap-1 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-4 py-3 text-white shadow-lg shadow-indigo-500/30">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-white">Your streak</p>
-            <div>
-              <span class="text-3xl font-semibold leading-none">{{ readingStreak }}</span>
-              <span aria-hidden="true" class="text-2xl">🔥</span>
+          <!-- Reading highlights -->
+          <section class="grid gap-3 grid-cols-2">
+            <div class="flex flex-col items-center gap-1 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-4 py-3 text-white shadow-lg shadow-indigo-500/30">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-white">Your streak</p>
+              <div>
+                <span class="text-3xl font-semibold leading-none">{{ readingStreak }}</span>
+                <span aria-hidden="true" class="text-2xl">🔥</span>
+              </div>
+            </div>
+
+            <div class="flex flex-col items-center gap-1 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 px-4 py-3 text-white shadow-lg shadow-emerald-500/30">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-white">Weekly pace</p>
+              <div class="flex items-end gap-1 leading-none">
+                <span class="text-3xl font-semibold leading-none">{{ weeklyPace }}</span>
+                <span class="text-sm font-semibold uppercase tracking-[0.1em] text-emerald-50/90">pages</span>
+              </div>
             </div>
           </section>
 
